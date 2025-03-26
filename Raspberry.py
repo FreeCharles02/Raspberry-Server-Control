@@ -39,12 +39,12 @@ while True:
     buf = '';
     while len(buf) < 16:
         buf = client.recv(16)
-    lf, lb, rf, rb = struct.unpack('!iiii', buf[:16])
+    lf2, lb2, rf2, rb2 = struct.unpack('!iiii', buf[:16])
 
-    print(f"\tA: {lf}\n" +
-          f"\tB: {lb}\n" +
-          f"\tC: {rf}\n" +
-          f"\tD: {rb}\n")
+    print(f"\tA: {lf2}\n" +
+          f"\tB: {lb2}\n" +
+          f"\tC: {rf2}\n" +
+          f"\tD: {rb2}\n")
 
 
-    ser.write(struct.pack('!iiii', lf, lb, rf, rb))
+    ser.write(struct.pack('!iiii', lf2, lb2, rf2, rb2))
