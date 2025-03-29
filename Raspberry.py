@@ -3,6 +3,7 @@ import serial
 import os
 import socket 
 import netifaces
+import time
 
 def get_non_loopback_ip():
     interfaces = netifaces.interfaces()
@@ -17,34 +18,46 @@ def get_non_loopback_ip():
                     return ip_address
     return None
 
-host = get_non_loopback_ip() # All available interfaces
-port = 9999 # Non privledged port
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP internet connection
-server.bind(("", port)) # Establishes connection between IP and port
+# All available interfaces
+host = get_non_loopback_ip()
+# host = '127.0.0.1'
+port = 9999
 
+# TCP internet connection
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.bind(("", port))
 server.listen(1)
-ser = serial.Serial('/dev/ttyACM0', 9600)
-#ser.write(struct.pack('!bbbb', 0, 0, 0, 0))
 
-print("gettin connection...")
-client, addr = server.accept()
-print("got a connection")
+# ser = serial.Serial('/dev/ttyACM0', 9600)
+# ser.write(struct.pack('!bbbb', 0, 0, 0, 0))
 
 
-#Checks constantly for client data
-while True: 
-#  client.send("Hello from RaspberryPi".encode())
+def main():
+    print("gettin connection...")
+    client, addr = server.accept()
+    print("got a connection")
 
-    buf = '';
-    while len(buf) < 16:
-        buf = client.recv(16)
-    lf2, lb2, rf2, rb2 = struct.unpack('!iiii', buf[:16])
+    # Checks constantly for client data
+    while True:
+        # client.send("Hello from RaspberryPi".encode())
 
-    print(f"\tA: {lf2}\n" +
-          f"\tB: {lb2}\n" +
-          f"\tC: {rf2}\n" +
-          f"\tD: {rb2}\n")
+        buf = ''
+        start = time.time()
+        while (len(buf) < 4):
+            buf = client.recv(4)
+            if (time.time()-start) > 1:
+                return socket.timeout
+
+        lf, lb, rf, rb = struct.unpack('!BBBB', buf)
+        print(f"\t{lf:3d}\t{rf:3d}\n\t{lb:3d}\t{rb:3d}\n\n")
+
+        ser.write(struct.pack('!iiii', lf, lb, rf, rb))
 
 
-    ser.write(struct.pack('!iiii', lf2, lb2, rf2, rb2))
+if __name__ == "__main__":
+    while(True):
+        try:
+            main()
+        except socket.timeout:
+            time.sleep(0.1)
