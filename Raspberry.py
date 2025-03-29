@@ -29,8 +29,8 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(("", port))
 server.listen(1)
 
-# ser = serial.Serial('/dev/ttyACM0', 9600)
-# ser.write(struct.pack('!bbbb', 0, 0, 0, 0))
+ser = serial.Serial('/dev/ttyACM0', 9600)
+ser.write(struct.pack('!BBBB', 0, 0, 0, 0))
 
 
 def main():
@@ -52,7 +52,7 @@ def main():
         lf, lb, rf, rb = struct.unpack('!BBBB', buf)
         print(f"\t{lf:3d}\t{rf:3d}\n\t{lb:3d}\t{rb:3d}\n\n")
 
-        ser.write(struct.pack('!iiii', lf, lb, rf, rb))
+        ser.write(struct.pack('!BBBB', lf, lb, rf, rb))
 
 
 if __name__ == "__main__":
