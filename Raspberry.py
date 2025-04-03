@@ -4,6 +4,23 @@ import os
 import socket 
 import netifaces
 import time
+from adafruit_servokit import ServoKit
+import board
+import adafruit_pca9685
+from adafruit_motor import servo
+import busio
+# Set channels to the number of servo channels on your kit.
+# 8 for FeatherWing, 16 for Shield/HAT/Bonnet.
+kit = ServoKit(channels=8)
+
+i2c=busio.I2C(board.SCL, board.SDA)
+while not i2c.try_lock():
+    pass
+devices = i2c.scan()
+print("Devices Found: ", devices)
+i2c.unlock()
+
+pca1 = adafruit_pca9685.PCA9685(i2c, address=0x40) 
 
 def get_non_loopback_ip():
     interfaces = netifaces.interfaces()
@@ -44,14 +61,35 @@ def main():
 
         buf = ''
         start = time.time()
-        while (len(buf) < 4):
-            buf = client.recv(4)
+        while (len(buf) < 12):
+            buf = client.recv(12)
             if (time.time()-start) > 1:
                 return socket.timeout
 
-        lf, lb, rf, rb = struct.unpack('!BBBB', buf)
-        print(f"\t{lf:3d}\t{rf:3d}\n\t{lb:3d}\t{rb:3d}\n\n")
+        rb, rf, lb, lf, lb_button, rb_button, dpad_value_1, dpad_value_2, lt_trigger, rt_trigger, a, y = struct.unpack('!BBBBBBBBBB', buf)
+        if(dpad_value_1 == 1):
+            kit.continuous_servo[1].throttle = 1
+            kit.continuous_servo[0].throttle = -1
+        elif(dpad_value_1 == -1):
+            kit.continuous_servo[1].throttle = -1
+            kit.continuous_servo[0].throttle = 1
+        else:
+            kit.continuous_servo[1].throttle = 0
+            kit.continuous_servo[0].throttle = 0
 
+        if(dpad_value_2 == 1):     
+            kit.servo[2].angle = 180
+        elif(dpad_value_2 == -1):
+            kit.servo[2].angle = 0
+        if(y == 1):
+            kit.servo[3].angle = 180
+        else:
+            kit.servo[3].angle = 0
+        if(a == 1):
+            kit.servo[4].angle = 180
+        else:
+            kit.servo[4].angle = 0
+                
         ser.write(struct.pack('!BBBB', lf, lb, rf, rb))
 
 
