@@ -1,7 +1,7 @@
 import struct
 import serial
 import os
-import socket 
+import socket
 import netifaces
 import time
 from adafruit_servokit import ServoKit
@@ -20,7 +20,7 @@ devices = i2c.scan()
 print("Devices Found: ", devices)
 i2c.unlock()
 
-pca1 = adafruit_pca9685.PCA9685(i2c, address=0x40) 
+pca1 = adafruit_pca9685.PCA9685(i2c, address=0x40)
 
 def get_non_loopback_ip():
     interfaces = netifaces.interfaces()
@@ -47,7 +47,7 @@ server.bind(("", port))
 server.listen(1)
 
 ser = serial.Serial('/dev/ttyACM0', 9600)
-ser.write(struct.pack('!BBBBBBBB', 0, 0, 0, 0, 0, 0, 0, 0))
+#ser.write(struct.pack('!BBBBBBBB', 0, 0, 0, 0, 0, 0, 0, 0))
 
 
 def main():
@@ -61,14 +61,15 @@ def main():
         pca1.frequency = 50
         buf = ''
         start = time.time()
-        while (len(buf) < 12):
-            buf = client.recv(12)
+        while (len(buf) < 14):
+            buf = client.recv(14)
             if (time.time()-start) > 1:
                 return socket.timeout
-        
-        rb, rf, lb, lf, lb_button, rb_button, dpad_value_1, dpad_value_2, rt_trigger, lt_trigger,  x, b= struct.unpack('!BBBBBBBBBBBB', buf)
+
+        rb, rf, lb, lf, lb_button, rb_button, dpad_value_1, dpad_value_2, rt_trigger, lt_trigger,  x, b, a, y= struct.unpack('!' + 'B' * 14, buf)
         print("LB: ", lb_button, "RB: ", rb_button)
         print("RT: ", rt_trigger, "LT: ", lt_trigger)
+        print("a:", x, "Y:", b)
         if(dpad_value_1 == 2):
             print("Dpad: ", dpad_value_1)
             kit.continuous_servo[1].throttle = 1
@@ -93,15 +94,18 @@ def main():
         else:
             kit.servo[3].angle =0
         if(dpad_value_2 == 0):
-            kit.servo[4].angle = 180 
+            kit.servo[4].angle = 180
         elif(dpad_value_2 == 2):
             kit.servo[4].angle = 0
-        ser.write(struct.pack('!BBBBBBBB', lf, lb, rf, rb, rt_trigger, lt_trigger, lb_button, rb_button))
+
+        print(f"A: {a: 3d}\tY: {y: 3d}");
+
+        ser.write(struct.pack('!' + 'B'*10, lf, lb, rf, rb, rt_trigger, lt_trigger, lb_button, rb_button, a ,y))
 
 
 if __name__ == "__main__":
     while(True):
         try:
             main()
-        except socket.timeout:
+        except (socket.timeout,ConnectionResetError):
             time.sleep(0.1)
